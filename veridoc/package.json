@@ -15,7 +15,8 @@
     "demo:local": "hardhat run scripts/demo.js --network localhost",
     "demo:sepolia": "hardhat run scripts/demo.js --network sepolia",
     "build:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --watch"
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --watch",
+    "update:server": "bash scripts/update-server.sh"
   },
   "keywords": [],
   "author": "",

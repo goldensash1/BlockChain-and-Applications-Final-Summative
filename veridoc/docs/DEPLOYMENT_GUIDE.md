@@ -83,3 +83,32 @@ npx hardhat console --network sepolia
 - Back up `data/veridoc.db` (or move to PostgreSQL)
 - Consider an Ethereum L2 (Base, Arbitrum, Optimism) for lower fees
 - Get an independent smart-contract audit before mainnet use
+
+## 7. Hosting on a server (CloudPanel / Ubuntu) and updating it
+Live site: https://veridoc.msilabtester.site, a CloudPanel **Node.js site** on port 3000. CloudPanel provides Nginx and the Let's Encrypt certificate.
+
+### First-time setup (as the site user, e.g. `su - veridoc`)
+```bash
+cd ~/htdocs/veridoc.msilabtester.site
+git clone https://github.com/goldensash1/BlockChain-and-Applications-Final-Summative.git repo
+cd repo/veridoc && npm ci
+cp .env.example .env    # set JWT_SECRET, COOKIE_SECURE=true, PUBLIC_URL, super-admin login, chain settings
+npm i -g pm2
+npm run update:server   # compiles, starts the app under PM2, saves the process list
+(crontab -l 2>/dev/null; echo "@reboot PATH=$(dirname $(which node)):\$PATH $(which pm2) resurrect") | crontab -
+```
+
+### Every update afterwards
+```bash
+# on your computer
+git add -A && git commit -m "..." && git push
+# on the server
+cd ~/htdocs/veridoc.msilabtester.site/repo/veridoc && npm run update:server
+```
+`update:server` runs `git pull --ff-only`, runs `npm ci` only when `package-lock.json` changed, compiles the contract ABI, reloads PM2 and prints the latest log lines.
+
+**Rules that keep `git pull` conflict-free:**
+- Never edit tracked files on the server. Change them locally and push. Server-only settings belong in `.env`, which git ignores.
+- `data/` (the SQLite database and uploaded files) and `.env` are ignored by git and are never overwritten by a pull. Back up `data/` yourself.
+- Deploy to **Sepolia from your own computer**, then commit `deployments/sepolia.json` and push. The server reads the contract address from that file, so it needs no `CONTRACT_ADDRESS` in `.env`.
+- If you change `contracts/VeriDoc.sol`, the live contract does **not** change. Redeploy it (`npm run deploy:sepolia`), commit the new `deployments/sepolia.json` and push. The new contract starts empty, so documents issued on the old contract must be issued again.
