@@ -1,0 +1,21 @@
+# Secrets and local data
+.env
+**/.env
+veridoc/data/
+veridoc/data.backup-*/
+
+# Dependencies and build output
+node_modules/
+veridoc/cache/
+veridoc/artifacts/
+veridoc/typechain-types/
+
+# Private / not part of the submission
+gaparayi.png
+Credentials.png
+BUILD_PROMPT.md
+veridoc/docs/BUILD_PROMPT.md
+
+# Local tooling and OS files
+.claude/
+.DS_Store

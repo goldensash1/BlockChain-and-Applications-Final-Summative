@@ -1,0 +1,11 @@
+Institution created. Admin temp password: AqbcL0_rwQFO9a
+Students: S001 (temp pw OM2OiprWbrio9a), S002 (temp pw ruos7JWg7bq99a), S003
+Certificate code: VD-HLM6K-H6HLQ
+Report card codes: S001:VD-XNQGK-LRVMU  S002:VD-ZYEBS-4B6D2  S003:VD-XCXM5-4UQUS
+Registered file code: VF-HLB9P-YDGD2
+
+Demo logins:
+  super admin : admin@veridoc.local / ChangeMe!12345
+  institution : registrar@demo.edu / Registrar#2026pw
+  issuer      : issuer@demo.edu / (temp) pB0rjt24hHYk9a
+  verifier    : visa@embassy.example / Embassy#2026pw

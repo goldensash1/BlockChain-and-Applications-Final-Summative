@@ -1,0 +1,35 @@
+
+
+  VeriDoc
+    Institutions
+      ✔ TC01 owner registers an institution
+      ✔ TC02 non-owner cannot register
+      ✔ TC03 duplicate institution rejected
+      ✔ TC04 zero admin / empty name rejected
+    Issuers
+      ✔ TC05 only institution admin (or owner) manages issuers
+      ✔ TC06 unauthorised address cannot issue
+      ✔ TC07 issuer of institution A cannot issue for institution B
+    Issue & verify
+      ✔ TC08 issued certificate verifies as Valid
+      ✔ TC09 unknown / forged hash verifies as NotFound
+      ✔ TC10 duplicate hash rejected
+      ✔ TC11 past expiry rejected at issue time
+      ✔ TC12 document becomes Expired after expiry
+      ✔ TC13 batch issue anchors every report card
+      ✔ TC14 empty and oversize batches rejected
+    Revoke & supersede
+      ✔ TC15 issuer revokes with a reason
+      ✔ TC16 stranger cannot revoke
+      ✔ TC17 cannot revoke twice or revoke unknown
+      ✔ TC18 supersede links old to corrected version
+      ✔ TC19 cannot supersede twice
+    Suspension & pause
+      ✔ TC20 suspending institution blocks issuing and flags existing docs
+      ✔ TC21 pause stops issuing; unpause restores it
+      ✔ TC22 only owner can pause / suspend
+      ✔ TC23 two-step ownership transfer
+
+
+  23 passing (514ms)
+

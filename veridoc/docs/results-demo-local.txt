@@ -1,0 +1,19 @@
+Network : localhost | Account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Contract: 0x5FbDB2315678afecb367f032d93F642f64180aa3 
+
+✔ registerInstitution
+  tx 0xb2cd3c50120777ccf0e08a234c517f4898ac6f95f8fa1b23164ba24d3fc49137  (block 13, gas 73374)
+✔ authorizeIssuer
+  tx 0xdbd5188af193a664990165c0327e10d96c1070f7ac4552e052fb19e7bd1559da  (block 14, gas 48634)
+
+Document fingerprint: 0xb3865416bced60909af54371dce007a307f169e1d192089ef09906a1ec3c3e87
+  verify(before issue) -> NotFound  institution=""
+✔ issue (Certificate, no expiry)
+  tx 0x9e868c79d9c55e69720d10573be12798ec23fd11d54e07c5d5986713bc1bfb11  (block 15, gas 89818)
+  verify(after issue) -> Valid  institution="Demo University of Kigali"
+  verify(forged document) -> NotFound  institution=""
+✔ revoke
+  tx 0x1abee280a0a75953b6bfa4d6d3dd35664c1224a6cc2dce06346c8d45607bf7e2  (block 16, gas 81218)
+  verify(after revoke) -> Revoked ("Issued in error - demo")  institution="Demo University of Kigali"
+
+Demo complete.

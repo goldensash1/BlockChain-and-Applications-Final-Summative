@@ -1,0 +1,5 @@
+Network  : localhost
+Deployer : 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Owner    : 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+VeriDoc deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Deploy tx hash       : 0x8fc79c34722b2c1e61c955cc7d630f307d73b8a188f72255397f111e812d4deb

@@ -1,0 +1,45 @@
+{
+  "name": "veridoc",
+  "version": "1.0.0",
+  "description": "Blockchain-based certificate & report card verification system",
+  "main": "server/index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "chain": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "start": "node server/index.js",
+    "seed": "node scripts/seed.js",
+    "e2e": "node scripts/e2e.js",
+    "demo:local": "hardhat run scripts/demo.js --network localhost",
+    "demo:sepolia": "hardhat run scripts/demo.js --network sepolia",
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.29.2",
+    "jsdom": "^31.0.1",
+    "solc": "^0.8.24",
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.2.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "ethers": "^6.17.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "qrcode": "^1.5.4"
+  }
+}
