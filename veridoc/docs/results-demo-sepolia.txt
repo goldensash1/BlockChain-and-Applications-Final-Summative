@@ -1,0 +1,23 @@
+> veridoc@1.0.0 demo:sepolia
+> hardhat run scripts/demo.js --network sepolia
+
+Network : sepolia | Account: 0x19ef7F7121B66B8440e3c0A8091EE9674978AD27
+Contract: 0x8DAEB0d204A30F4e712e701033Df992AdC333c52 
+
+✔ registerInstitution
+  tx 0xc49bccc3d4257bc940fb56247ebab7188972141f400034a42c3df9849a28ed19  (block 12210229, gas 243414)  https://sepolia.etherscan.io/tx/0xc49bccc3d4257bc940fb56247ebab7188972141f400034a42c3df9849a28ed19
+✔ authorizeIssuer
+  tx 0x761bfa76620a56c7de444b642cfc5ed223db8a0a207a47724c834d8c26983c14  (block 12210231, gas 130654)  https://sepolia.etherscan.io/tx/0x761bfa76620a56c7de444b642cfc5ed223db8a0a207a47724c834d8c26983c14
+
+Document fingerprint: 0x5d9b062dce62f714fbd52d974e896f53193aabb3c68498b3720b36c25d43b7a3
+  verify(before issue) -> NotFound  institution=""
+  (issue (Certificate, no expiry): RPC node not caught up yet, retrying in 3s)
+✔ issue (Certificate, no expiry)
+  tx 0xd45884281a947ba5af958431f085fcec8063c1e463e0ff847187250f1951ec9d  (block 12210233, gas 364778)  https://sepolia.etherscan.io/tx/0xd45884281a947ba5af958431f085fcec8063c1e463e0ff847187250f1951ec9d
+  verify(after issue) -> Valid  institution="Demo University of Kigali"
+  verify(forged document) -> NotFound  institution=""
+✔ revoke
+  tx 0xdf6ad40c8067edeac7a5fa8d9a0ceebbb5af0e95851b4b50c3695ed87f4f7e0f  (block 12210235, gas 251258)  https://sepolia.etherscan.io/tx/0xdf6ad40c8067edeac7a5fa8d9a0ceebbb5af0e95851b4b50c3695ed87f4f7e0f
+  verify(after revoke) -> Revoked ("Issued in error - demo")  institution="Demo University of Kigali"
+
+Demo complete.

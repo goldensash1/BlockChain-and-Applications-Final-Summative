@@ -5,6 +5,15 @@ Final Summative · Blockchain and Applications
 
 VERIDOC lets schools, universities and online-learning platforms issue certificates and report cards whose cryptographic fingerprints are anchored on Ethereum. An embassy, employer or admissions office can confirm that a document is genuine in seconds, with no phone call to the issuer, no fee and no account. Only a salted `keccak256` hash goes on-chain, so no personal data is ever published.
 
+## Live deployment
+| | |
+|---|---|
+| Network | Ethereum **Sepolia** testnet (chainId 11155111) |
+| Contract | [`0x8DAEB0d204A30F4e712e701033Df992AdC333c52`](https://sepolia.etherscan.io/address/0x8DAEB0d204A30F4e712e701033Df992AdC333c52) |
+| Deploy transaction | [`0xfc67eb77…e966a`](https://sepolia.etherscan.io/tx/0xfc67eb7762f18e50c88374f159dbac107ec51d97a9e242894a6dc52fc13e966a) (block 12210208) |
+| Demo on Sepolia | register → authorize → issue → verify (Valid / forged: NotFound) → revoke (Revoked): [`veridoc/docs/results-demo-sepolia.txt`](veridoc/docs/results-demo-sepolia.txt) |
+| Web app | https://veridoc.msilabtester.site |
+
 ## The problem
 Checking an academic document today usually means phoning or emailing the school that issued it. That takes days, can cost money, and fails when the office is closed or has lost its records. Paper documents and PDFs are easy to edit, so honest graduates get doubted and forged documents get through.
 

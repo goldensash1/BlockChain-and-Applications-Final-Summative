@@ -1,0 +1,11 @@
+VeriDoc on Ethereum Sepolia (chainId 11155111)
+
+Contract address : 0x8DAEB0d204A30F4e712e701033Df992AdC333c52
+Owner / deployer : 0x19ef7F7121B66B8440e3c0A8091EE9674978AD27
+Deploy tx        : 0xfc67eb7762f18e50c88374f159dbac107ec51d97a9e242894a6dc52fc13e966a
+Block            : 12210208 (2026-11-25 14:46:36 UTC), status: success
+
+Etherscan (contract) : https://sepolia.etherscan.io/address/0x8DAEB0d204A30F4e712e701033Df992AdC333c52
+Etherscan (deploy tx): https://sepolia.etherscan.io/tx/0xfc67eb7762f18e50c88374f159dbac107ec51d97a9e242894a6dc52fc13e966a
+
+Deployed with: npm run deploy:sepolia   (record: deployments/sepolia.json)
