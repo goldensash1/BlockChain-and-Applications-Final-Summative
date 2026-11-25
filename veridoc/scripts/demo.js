@@ -11,9 +11,22 @@ const { ethers } = hre;
 const STATUS = ["NotFound", "Valid", "Revoked", "Expired", "Superseded", "InstitutionSuspended"];
 const link = (h) => (hre.network.name === "sepolia" ? `  https://sepolia.etherscan.io/tx/${h}` : "");
 
-async function step(label, txPromise) {
-  const tx = await txPromise;
-  const rc = await tx.wait();
+// Public RPCs are pools of nodes that can lag a block behind each other, so on a live
+// network a call that depends on the previous tx may "revert" during gas estimation for
+// a few seconds. Retry those, and wait one extra block so the reads that follow are fresh.
+const LIVE = !["hardhat", "localhost"].includes(hre.network.name);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function step(label, send) {
+  let tx;
+  for (let attempt = 0; ; attempt++) {
+    try { tx = await send(); break; }
+    catch (e) {
+      if (!LIVE || attempt >= 4 || !/revert/i.test(e.message || "")) throw e;
+      console.log(`  (${label}: RPC node not caught up yet, retrying in 3s)`);
+      await sleep(3000);
+    }
+  }
+  const rc = await tx.wait(LIVE ? 2 : 1);
   console.log(`✔ ${label}\n  tx ${rc.hash}  (block ${rc.blockNumber}, gas ${rc.gasUsed})${link(rc.hash)}`);
   return rc;
 }
@@ -35,8 +48,8 @@ async function main() {
   console.log("Contract:", await c.getAddress(), "\n");
 
   const instId = ethers.id("demo-univ-" + Date.now()); // unique per run
-  await step("registerInstitution", c.registerInstitution(instId, "Demo University of Kigali", signer.address));
-  await step("authorizeIssuer", c.authorizeIssuer(instId, signer.address));
+  await step("registerInstitution", () => c.registerInstitution(instId, "Demo University of Kigali", signer.address));
+  await step("authorizeIssuer", () => c.authorizeIssuer(instId, signer.address));
 
   // Document fingerprint = keccak256(canonical JSON incl. random salt)
   const doc = { institution: "Demo University of Kigali", holder: "Aline Uwase", title: "BSc Software Engineering", salt: ethers.hexlify(ethers.randomBytes(16)) };
@@ -44,13 +57,13 @@ async function main() {
   console.log("\nDocument fingerprint:", h);
   await show(c, "before issue", h);
 
-  await step("issue (Certificate, no expiry)", c.issue(instId, h, 0, 0));
+  await step("issue (Certificate, no expiry)", () => c.issue(instId, h, 0, 0));
   await show(c, "after issue", h);
 
   const forged = ethers.keccak256(ethers.toUtf8Bytes("forged certificate"));
   await show(c, "forged document", forged);
 
-  await step("revoke", c.revoke(h, "Issued in error - demo"));
+  await step("revoke", () => c.revoke(h, "Issued in error - demo"));
   await show(c, "after revoke", h);
   console.log("\nDemo complete.");
 }

@@ -11,7 +11,17 @@ lock_before=$(sha1sum package-lock.json | cut -d' ' -f1)
 sol_before=$(cat contracts/*.sol | sha1sum | cut -d' ' -f1)
 
 echo "==> Pulling latest code"
-git pull --ff-only
+git fetch --quiet
+# A deploy run on this server writes deployments/<network>.json as an untracked file. Once
+# the same file is committed and pushed, `git pull` would refuse to overwrite it. Remove the
+# local copy only when it is byte-for-byte identical to the incoming one.
+for f in $(git diff --name-only --diff-filter=A HEAD @{u} -- deployments/); do
+  if [ -f "$f" ] && ! git ls-files --error-unmatch "$f" >/dev/null 2>&1 && git show "@{u}:$f" | cmp -s - "$f"; then
+    echo "    $f is identical to the committed copy; replacing it with the tracked file"
+    rm "$f"
+  fi
+done
+git merge --ff-only --quiet @{u}
 
 if [ "$(sha1sum package-lock.json | cut -d' ' -f1)" != "$lock_before" ] || [ ! -d node_modules ]; then
   echo "==> Dependencies changed: npm ci"
