@@ -15,6 +15,7 @@ const newFileCode = () => D.newCode().replace(/^VD-/, "VF-");
 const summary = (f) => ({
   id: f.id, code: f.code, title: f.title, description: f.description, fileName: f.original_name, mime: f.mime, size: f.size,
   hash: f.doc_hash, chainTx: f.chain_tx, chainStatus: f.chain_status, status: f.status, revokeReason: f.revoke_reason, createdAt: f.created_at, uploadedBy: f.uploader,
+  source: f.source, stored: !!f.stored, docType: f.doc_type, externalRef: f.external_ref,
 });
 const LIST = "SELECT f.*, u.name AS uploader FROM files f LEFT JOIN users u ON u.id=f.uploaded_by";
 
@@ -58,7 +59,7 @@ router.get("/", staff, (req, res) =>
 // Original file download for the owning institution
 router.get("/:id/download", staff, wrap(async (req, res) => {
   const f = db.prepare("SELECT * FROM files WHERE id=? AND institution_id=?").get(req.params.id, req.user.institution_id);
-  if (!f || f.chain_status !== "anchored") throw new HttpError(404, "Not found");
+  if (!f || f.chain_status !== "anchored" || !f.stored) throw new HttpError(404, "Not found");
   res.attachment(f.original_name); // forces download; type derives from the extension
   res.send(fs.readFileSync(filePath(f.code)));
 }));

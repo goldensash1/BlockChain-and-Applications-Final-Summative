@@ -12,7 +12,7 @@ npm run deploy:local     # terminal 2
 npm run build:css        # (only if you edit the UI) rebuild Tailwind CSS
 npm start                # http://localhost:3000
 npm run seed             # demo institution, students, documents + logins
-npm run e2e              # 90 API tests
+npm run e2e              # 112 API tests
 npm run demo:local       # issue -> verify -> revoke walkthrough (also: demo:sepolia)
 ```
 

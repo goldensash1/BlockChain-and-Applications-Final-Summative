@@ -26,6 +26,7 @@ app.use("/api/institution", require("./routes/institution"));
 app.use("/api/documents", require("./routes/documents"));
 app.use("/api/files", require("./routes/files"));
 app.use("/api/verify", require("./routes/verify"));
+app.use("/api/v1", require("./routes/v1")); // company "seal" API (API keys) + public verification
 
 // Printable document by verification code (the code itself is the access secret)
 app.get("/d/:code", async (req, res, next) => {
@@ -39,7 +40,7 @@ app.get("/d/:code", async (req, res, next) => {
 
 // Public download of a registered file by its verification code (the code is the access secret, like /d/:code)
 app.get("/f/:code", (req, res) => {
-  const f = db.prepare("SELECT * FROM files WHERE code=? AND chain_status='anchored'").get(String(req.params.code).toUpperCase());
+  const f = db.prepare("SELECT * FROM files WHERE code=? AND chain_status='anchored' AND stored=1").get(String(req.params.code).toUpperCase());
   if (!f) return res.status(404).send("File not found");
   res.attachment(f.original_name); // forces download; type derives from the extension
   res.send(require("fs").readFileSync(require("./upload").filePath(f.code)));

@@ -209,6 +209,71 @@ function t(name, cond, extra = "") { cond ? pass++ : fail++; console.log(`${cond
   t("E89 old password stops working, new one works", oldLogin.status === 401 && newLogin.status === 200);
   t("E90 password changed back (keeps the demo login stable)", (await cp({ currentPassword: NEW, newPassword: OLD })).status === 200);
 
+  // --- COMPANY SEAL API (API keys + /api/v1) ---
+  {
+  const v1 = async (method, url, body, key, extraHeaders = {}) => {
+    const r = await fetch(BASE + url, { method, headers: { ...(body ? { "content-type": "application/json" } : {}), ...(key ? { authorization: "Bearer " + key } : {}), ...extraHeaders }, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, data: await r.json().catch(() => ({})) };
+  };
+  const v1upload = async (url, fields, name, bytes, key) => {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(fields || {})) fd.append(k, v);
+    if (bytes) fd.append("file", new Blob([bytes]), name);
+    const r = await fetch(BASE + url, { method: "POST", headers: key ? { authorization: "Bearer " + key } : {}, body: fd });
+    return { status: r.status, data: await r.json().catch(() => ({})) };
+  };
+  const { ethers } = require("ethers");
+  t("E91 verifier cannot create API keys (403)", (await call("POST", "/api/institution/api-keys", { name: "x" }, ver)).status === 403);
+  const nk = await call("POST", "/api/institution/api-keys", { name: "Student information system" }, reg);
+  const KEY = nk.data.key;
+  t("E92 institution admin creates an API key (shown once, vdk_ prefix)", nk.status === 201 && /^vdk_/.test(KEY || ""));
+  const kl = (await call("GET", "/api/institution/api-keys", null, reg)).data;
+  t("E93 key list shows only the prefix, never the full key", kl.some((k) => k.prefix === KEY.slice(0, 12)) && !JSON.stringify(kl).includes(KEY));
+  t("E94 API call without a key -> 401", (await v1("GET", "/api/v1/me")).status === 401);
+  t("E95 API call with a wrong key -> 401", (await v1("GET", "/api/v1/me", null, "vdk_wrong")).status === 401);
+  const me = await v1("GET", "/api/v1/me", null, KEY);
+  t("E96 key identifies its institution", me.status === 200 && me.data.institution.name === "Demo University of Kigali");
+  const rcPdf = Buffer.from(`%PDF-1.4 report card S001 term 1 ${Date.now()}`);
+  const sealed = await v1upload("/api/v1/documents", { title: "Report card T1 - S001", docType: "report_card", externalRef: "SIS-S001-T1" }, "rc-S001.pdf", rcPdf, KEY);
+  t("E97 company system seals a file -> 201 with VF code, QR and verify link", sealed.status === 201 && /^VF-/.test(sealed.data.code) && sealed.data.status === "VALID"
+    && sealed.data.seal.qrPng.startsWith("data:image/png;base64,") && sealed.data.seal.verifyUrl.endsWith(sealed.data.code), JSON.stringify(sealed.data).slice(0, 200));
+  const vf = await v1upload("/api/v1/verify", {}, "received.pdf", rcPdf);
+  t("E98 another company verifies the same file (no key) -> valid", vf.status === 200 && vf.data.valid === true && vf.data.code === sealed.data.code && vf.data.docType === "report_card");
+  const rcForged = Buffer.from(rcPdf); rcForged[rcForged.length - 1] ^= 1;
+  const vff = await v1upload("/api/v1/verify", {}, "forged.pdf", rcForged);
+  t("E99 one changed byte -> NOT_FOUND, valid=false", vff.data.status === "NOT_FOUND" && vff.data.valid === false);
+  t("E100 verify by printed code -> VALID", (await v1("POST", "/api/v1/verify", { code: sealed.data.code })).data.status === "VALID");
+  const fpBytes = Buffer.from("certificate kept private " + Date.now()), fp = ethers.keccak256(fpBytes);
+  const sealedFp = await v1("POST", "/api/v1/documents", { fileHash: fp, title: "Certificate - fingerprint only", docType: "certificate" }, KEY);
+  t("E101 seal by fingerprint only (file never sent) -> 201", sealedFp.status === 201 && sealedFp.data.hash === fp.toLowerCase() && !sealedFp.data.fileName);
+  const vh = await v1("POST", "/api/v1/verify", { hash: fp });
+  t("E102 verify by fingerprint -> VALID with its code", vh.data.valid === true && vh.data.code === sealedFp.data.code);
+  const vcf = await v1("POST", "/api/v1/verify", { code: sealedFp.data.code });
+  t("E103 fingerprint-only record by code -> VALID (not TAMPERED), no download", vcf.data.status === "VALID" && !vcf.data.downloadUrl);
+  t("E104 sealing the same fingerprint twice -> 409", (await v1("POST", "/api/v1/documents", { fileHash: fp, title: "again" }, KEY)).status === 409);
+  const bad = await Promise.all([
+    v1("POST", "/api/v1/documents", { fileHash: "0x123", title: "x" }, KEY),
+    v1("POST", "/api/v1/documents", { fileHash: ethers.id("no-title" + Date.now()) }, KEY),
+    v1("POST", "/api/v1/documents", { fileHash: ethers.id("bad-type" + Date.now()), title: "x", docType: "invoice" }, KEY),
+  ]);
+  t("E105 bad fingerprint / missing title / unknown docType -> 400", bad.every((r) => r.status === 400));
+  const hs = [0, 1, 2].map((i) => ethers.id(`batch-${Date.now()}-${i}`));
+  const batch = await v1("POST", "/api/v1/documents/batch", { docType: "report_card", documents: hs.map((h, i) => ({ fileHash: h, title: `Report card T1 - S00${i + 1}`, externalRef: `S00${i + 1}` })) }, KEY);
+  t("E106 batch of 3 sealed in ONE transaction", batch.status === 201 && batch.data.count === 3 && new Set(batch.data.documents.map((d) => d.chain.tx)).size === 1);
+  const vb = await Promise.all(hs.map((h) => v1("POST", "/api/v1/verify", { hash: h })));
+  t("E107 every batch document verifies VALID", vb.every((r) => r.data.status === "VALID"));
+  const lst = await v1("GET", "/api/v1/documents?limit=10", null, KEY), one = await v1("GET", `/api/v1/documents/${sealed.data.code}`, null, KEY);
+  t("E108 list + get one (with QR seal)", lst.data.some((d) => d.code === sealed.data.code) && one.data.seal.qrPng.startsWith("data:image/png"));
+  const rv = await v1("POST", `/api/v1/documents/${sealed.data.code}/revoke`, { reason: "Grade corrected - reissued" }, KEY);
+  const vr = await v1("POST", "/api/v1/verify", { code: sealed.data.code });
+  t("E109 revoke via API -> verifies REVOKED with the reason", rv.status === 200 && vr.data.status === "REVOKED" && vr.data.revokeReason === "Grade corrected - reissued");
+  t("E110 revoking a code that is not yours -> 404", (await v1("POST", "/api/v1/documents/VF-AAAAA-BBBBB/revoke", { reason: "nope" }, KEY)).status === 404);
+  t("E111 X-API-Key header also accepted", (await v1("GET", "/api/v1/me", null, null, { "x-api-key": KEY })).status === 200);
+  const kid = kl.find((k) => k.prefix === KEY.slice(0, 12)).id;
+  await call("DELETE", `/api/institution/api-keys/${kid}`, null, reg);
+  t("E112 revoked key stops working -> 401", (await v1("GET", "/api/v1/me", null, KEY)).status === 401);
+  }
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

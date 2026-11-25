@@ -30,17 +30,20 @@ async function check(canonicalJson, expectedHash) {
 }
 
 // GET /api/verify/code/VD-XXXXX-XXXXX
-router.get("/code/:code", wrap(async (req, res) => {
-  const code = String(req.params.code).trim().toUpperCase();
-  if (code.startsWith("VF-")) return res.json(await verifyFileCode(req, code));
+router.get("/code/:code", wrap(async (req, res) => res.json(await verifyCode(req, req.params.code))));
+
+/** Verify by printed code (VD- documents issued in VeriDoc, VF- files / API-sealed documents). */
+async function verifyCode(req, rawCode) {
+  const code = String(rawCode).trim().toUpperCase();
+  if (code.startsWith("VF-")) return verifyFileCode(req, code);
   const d = db.prepare(`SELECT d.*, i.name AS inst_name FROM documents d JOIN institutions i ON i.id=d.institution_id WHERE d.code=?`).get(code);
-  if (!d || d.chain_status !== "anchored") { log(req, code, "NOT_FOUND"); return res.json({ status: "NOT_FOUND", message: "No document with this code exists in the registry." }); }
+  if (!d || d.chain_status !== "anchored") { log(req, code, "NOT_FOUND"); return { status: "NOT_FOUND", message: "No document with this code exists in the registry." }; }
 
   const { hash, tampered, onChain } = await check(d.payload, d.doc_hash);
   const status = tampered ? "TAMPERED" : onChain.status;
   log(req, code, status, d.doc_hash);
   const payload = JSON.parse(d.payload);
-  res.json({
+  return {
     status,
     message: tampered ? "Stored record does not match its blockchain fingerprint. Do NOT trust this document." : undefined,
     code: d.code, hash, docType: d.doc_type, title: d.title,
@@ -50,47 +53,54 @@ router.get("/code/:code", wrap(async (req, res) => {
     revokeReason: onChain.revokeReason,
     supersededBy: onChain.supersededBy && db.prepare("SELECT code FROM documents WHERE doc_hash=?").get(onChain.supersededBy)?.code,
     chain: { contract: chain.info().contract, tx: d.chain_tx, explorer: explorer(d.chain_tx) },
-  });
-}));
+  };
+}
 
 /** Registered file looked up by code; the stored bytes are re-hashed so a doctored server copy is detected too. */
 async function verifyFileCode(req, code) {
   const f = db.prepare("SELECT f.*, i.name AS inst_name FROM files f JOIN institutions i ON i.id=f.institution_id WHERE f.code=?").get(code);
   if (!f || f.chain_status !== "anchored") { log(req, code, "NOT_FOUND"); return { status: "NOT_FOUND", message: "No document with this code exists in the registry." }; }
-  let tampered = false;
-  try { tampered = ethers.keccak256(fs.readFileSync(filePath(f.code))) !== f.doc_hash; } catch { tampered = true; }
+  let tampered = false; // fingerprint-only (API) records have no stored copy to re-check
+  if (f.stored) { try { tampered = ethers.keccak256(fs.readFileSync(filePath(f.code))) !== f.doc_hash; } catch { tampered = true; } }
   let onChain; try { onChain = await chain.verify(f.doc_hash); } catch { throw new HttpError(503, "Blockchain network unreachable, please retry shortly"); }
   const status = tampered ? "TAMPERED" : onChain.status;
   log(req, code, status, f.doc_hash);
-  return { status, message: tampered ? "The stored file does not match its blockchain fingerprint. Do NOT trust it." : undefined, code: f.code, hash: f.doc_hash, docType: "uploaded_file",
+  return { status, message: tampered ? "The stored file does not match its blockchain fingerprint. Do NOT trust it." : undefined, code: f.code, hash: f.doc_hash, docType: f.source === "api" ? f.doc_type : "uploaded_file", externalRef: f.external_ref || undefined,
     title: f.title, description: f.description, fileName: f.original_name, fileSize: f.size, institution: onChain.institutionName || f.inst_name, issuedAt: onChain.issuedAt, expiresAt: onChain.expiresAt,
-    revokeReason: onChain.revokeReason, downloadUrl: "/f/" + f.code, chain: { contract: chain.info().contract, tx: f.chain_tx, explorer: explorer(f.chain_tx) } };
+    revokeReason: onChain.revokeReason, downloadUrl: f.stored ? "/f/" + f.code : undefined, chain: { contract: chain.info().contract, tx: f.chain_tx, explorer: explorer(f.chain_tx) } };
 }
 
 // POST /api/verify/file  (multipart "file") → hash the uploaded bytes and ask the blockchain. Works for ANY institution's registered file.
-router.post("/file", oneFile, wrap(async (req, res) => {
-  if (!req.file?.buffer?.length) throw new HttpError(400, "Choose a file to verify");
+router.post("/file", oneFile, wrap(async (req, res) => res.json(await verifyFile(req, req.file))));
+
+/** Hash uploaded bytes and ask the blockchain. Works for ANY institution's registered file. */
+async function verifyFile(req, file) {
+  if (!file?.buffer?.length) throw new HttpError(400, "Choose a file to verify");
+  req.file = file;
   const hash = ethers.keccak256(req.file.buffer);
   let onChain; try { onChain = await chain.verify(hash); } catch { throw new HttpError(503, "Blockchain network unreachable, please retry shortly"); }
   const f = db.prepare("SELECT f.*, i.name AS inst_name FROM files f JOIN institutions i ON i.id=f.institution_id WHERE f.doc_hash=?").get(hash);
   log(req, "file:" + String(req.file.originalname).slice(0, 80), onChain.status, hash);
-  res.json({
-    status: onChain.status, hash, institution: onChain.institutionName, docType: f ? "uploaded_file" : onChain.docType, title: f?.title, description: f?.description,
+  return ({
+    status: onChain.status, hash, institution: onChain.institutionName, docType: f ? (f.source === "api" ? f.doc_type : "uploaded_file") : onChain.docType, title: f?.title, description: f?.description,
     fileName: f?.original_name || req.file.originalname, fileSize: req.file.size, code: f?.code, issuedAt: onChain.issuedAt, expiresAt: onChain.expiresAt, revokeReason: onChain.revokeReason,
     message: onChain.status === "NOT_FOUND" ? "This exact file is not in the registry. It may be forged, or it was modified after it was registered (even one changed byte gives a different fingerprint)." : undefined,
-    downloadUrl: f ? "/f/" + f.code : undefined, chain: f ? { contract: chain.info().contract, tx: f.chain_tx, explorer: explorer(f.chain_tx) } : undefined,
+    downloadUrl: f?.stored ? "/f/" + f.code : undefined, chain: f ? { contract: chain.info().contract, tx: f.chain_tx, explorer: explorer(f.chain_tx) } : undefined,
   });
-}));
+}
 
 // POST /api/verify/hash  { hash }   → pure on-chain lookup (no database involved)
-router.post("/hash", wrap(async (req, res) => {
-  const hash = String(req.body?.hash || "").trim();
+router.post("/hash", wrap(async (req, res) => res.json(await verifyHash(req, req.body?.hash))));
+
+async function verifyHash(req, raw) {
+  const hash = String(raw || "").trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new HttpError(400, "hash must be a 0x-prefixed 32-byte hex string");
   let onChain;
   try { onChain = await chain.verify(hash); } catch { throw new HttpError(503, "Blockchain network unreachable"); }
   log(req, hash, onChain.status, hash);
-  res.json({ hash, ...onChain });
-}));
+  const f = db.prepare("SELECT code, title FROM files WHERE doc_hash=? AND chain_status='anchored'").get(hash.toLowerCase());
+  return { hash, ...onChain, code: f?.code, title: f?.title };
+}
 
 // POST /api/verify/package  { payload }  → independent check of a downloaded .veridoc.json
 // The server re-computes the fingerprint itself, so a doctored file simply won't match anything on-chain.
@@ -108,3 +118,6 @@ router.get("/history", requireRole("verifier", "super_admin"), (req, res) =>
   res.json(db.prepare("SELECT query,result,created_at FROM verification_log WHERE user_id=? ORDER BY id DESC LIMIT 200").all(req.user.id)));
 
 module.exports = router;
+module.exports.verifyCode = verifyCode;
+module.exports.verifyFile = verifyFile;
+module.exports.verifyHash = verifyHash;

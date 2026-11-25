@@ -30,7 +30,7 @@ Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results
 | TC22 | only owner can pause / suspend | PASS |
 | TC23 | two-step ownership transfer | PASS |
 
-## B. End-to-end API tests (`npm run e2e`) - 90 / 90 passed
+## B. End-to-end API tests (`npm run e2e`) - 112 / 112 passed
 
 | ID | Test case (expected behaviour) | Result |
 |---|---|---|
@@ -124,3 +124,25 @@ Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results
 | E88 | signed-in user changes own password | PASS |
 | E89 | old password stops working, new one works | PASS |
 | E90 | password changed back (keeps the demo login stable) | PASS |
+| E91 | verifier cannot create API keys (403) | PASS |
+| E92 | institution admin creates an API key (shown once, vdk_ prefix) | PASS |
+| E93 | key list shows only the prefix, never the full key | PASS |
+| E94 | API call without a key -> 401 | PASS |
+| E95 | API call with a wrong key -> 401 | PASS |
+| E96 | key identifies its institution | PASS |
+| E97 | company system seals a file -> 201 with VF code, QR and verify link | PASS |
+| E98 | another company verifies the same file (no key) -> valid | PASS |
+| E99 | one changed byte -> NOT_FOUND, valid=false | PASS |
+| E100 | verify by printed code -> VALID | PASS |
+| E101 | seal by fingerprint only (file never sent) -> 201 | PASS |
+| E102 | verify by fingerprint -> VALID with its code | PASS |
+| E103 | fingerprint-only record by code -> VALID (not TAMPERED), no download | PASS |
+| E104 | sealing the same fingerprint twice -> 409 | PASS |
+| E105 | bad fingerprint / missing title / unknown docType -> 400 | PASS |
+| E106 | batch of 3 sealed in ONE transaction | PASS |
+| E107 | every batch document verifies VALID | PASS |
+| E108 | list + get one (with QR seal) | PASS |
+| E109 | revoke via API -> verifies REVOKED with the reason | PASS |
+| E110 | revoking a code that is not yours -> 404 | PASS |
+| E111 | X-API-Key header also accepted | PASS |
+| E112 | revoked key stops working -> 401 | PASS |

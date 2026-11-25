@@ -94,10 +94,33 @@ CREATE TABLE IF NOT EXISTS files (
   uploaded_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS api_keys (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  institution_id INTEGER NOT NULL REFERENCES institutions(id),
+  name TEXT NOT NULL,                   -- e.g. "Student portal (production)"
+  prefix TEXT NOT NULL,                 -- first characters, shown in the UI to recognise a key
+  key_hash TEXT UNIQUE NOT NULL,        -- sha256 of the full key; the key itself is never stored
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at TEXT,
+  revoked_at TEXT
+);
 CREATE INDEX IF NOT EXISTS idx_files_inst ON files(institution_id);
+CREATE INDEX IF NOT EXISTS idx_keys_inst ON api_keys(institution_id);
 CREATE INDEX IF NOT EXISTS idx_docs_student ON documents(student_id);
 CREATE INDEX IF NOT EXISTS idx_docs_inst ON documents(institution_id);
 `);
+
+// Additive migrations for databases created before the company API (seal service) existed.
+const fileCols = new Set(db.prepare("PRAGMA table_info(files)").all().map((c) => c.name));
+for (const [col, def] of [
+  ["source", "TEXT NOT NULL DEFAULT 'web'"],   // web | api
+  ["stored", "INTEGER NOT NULL DEFAULT 1"],    // 0 = fingerprint-only registration (bytes never sent to us)
+  ["doc_type", "TEXT NOT NULL DEFAULT 'other'"],
+  ["external_ref", "TEXT"],                    // the company's own id for the document
+  ["expires_at", "TEXT"],
+  ["api_key_id", "INTEGER REFERENCES api_keys(id)"],
+]) if (!fileCols.has(col)) db.exec(`ALTER TABLE files ADD COLUMN ${col} ${def}`);
 
 const audit = (userId, action, detail) =>
   db.prepare("INSERT INTO audit_log (user_id, action, detail) VALUES (?,?,?)").run(userId ?? null, action, detail ? String(detail).slice(0, 500) : null);

@@ -216,7 +216,7 @@ function docRow(d) {
 // ───────────────────────────── shell ─────────────────────────────
 const NAV = {
   super_admin: [["dashboard", "Dashboard", "grid"], ["institutions", "Institutions", "building"], ["users", "Users", "users"], ["audit", "Audit log", "clipboard"], ["verify", "Verify a document", "shield"]],
-  institution_admin: [["dashboard", "Dashboard", "grid"], ["documents", "Documents", "file"], ["issue", "Issue certificate", "award"], ["batch", "Report cards", "layers"], ["files", "Upload to blockchain", "upload"], ["students", "Students", "users"], ["people", "Staff & access", "key"], ["verify", "Verify a document", "shield"]],
+  institution_admin: [["dashboard", "Dashboard", "grid"], ["documents", "Documents", "file"], ["issue", "Issue certificate", "award"], ["batch", "Report cards", "layers"], ["files", "Upload to blockchain", "upload"], ["students", "Students", "users"], ["people", "Staff & access", "key"], ["apikeys", "API keys", "link"], ["verify", "Verify a document", "shield"]],
   issuer: [["dashboard", "Dashboard", "grid"], ["documents", "Documents", "file"], ["issue", "Issue certificate", "award"], ["batch", "Report cards", "layers"], ["files", "Upload to blockchain", "upload"], ["students", "Students", "users"], ["verify", "Verify a document", "shield"]],
   student: [["dashboard", "My documents", "file"], ["verify", "Verify a document", "shield"]],
   verifier: [["dashboard", "Dashboard", "grid"], ["verify", "Verify a document", "shield"]],
@@ -225,7 +225,7 @@ const SUBTITLE = {
   dashboard: "Overview of activity and status", institutions: "Register and manage institutions on the blockchain", users: "Accounts, approvals and access", audit: "Every sensitive action, recorded",
   documents: "Everything your institution has issued", issue: "Anchor a certificate on Ethereum", batch: "Issue a whole class in one transaction", students: "Your students and bulk import",
   people: "Issuers and student logins you can manage", files: "Register any file on Ethereum so other institutions can validate it", verify: "Check any document in seconds",
-  account: "Your profile and password",
+  account: "Your profile and password", apikeys: "Let your own systems seal documents automatically",
 };
 /** Available to every signed-in role, shown under the user card in the sidebar. */
 const ACCOUNT_NAV = ["account", "My account", "user"];
@@ -328,7 +328,7 @@ function publicHeader() {
     h("a", { href: "#/", class: "flex items-center gap-3" }, brandLogo("h-9 w-9"), h("span", { class: "text-xl font-bold tracking-tight" }, "Veri", h("span", { class: "text-emerald-400" }, "Doc"))),
     h("nav", { class: "flex items-center gap-2 text-sm font-medium" },
       me ? h("a", { href: "#/app/dashboard", class: "rounded-lg bg-white px-4 py-2 font-semibold text-navy" }, "Open dashboard")
-        : [h("a", { href: "#/register", class: "hidden rounded-lg px-4 py-2 text-slate-200 hover:bg-white/10 sm:block" }, "Register as verifier"), h("a", { href: "#/login", class: "rounded-lg bg-white px-4 py-2 font-semibold text-navy hover:bg-slate-100" }, "Sign in")])));
+        : [h("a", { href: "#/developers", class: "hidden rounded-lg px-4 py-2 text-slate-200 hover:bg-white/10 sm:block" }, "Developers"), h("a", { href: "#/register", class: "hidden rounded-lg px-4 py-2 text-slate-200 hover:bg-white/10 sm:block" }, "Register as verifier"), h("a", { href: "#/login", class: "rounded-lg bg-white px-4 py-2 font-semibold text-navy hover:bg-slate-100" }, "Sign in")])));
 }
 function pageVerifyPublic(code) {
   const feat = (ic, t, d) => h("div", { class: "flex items-start gap-3" }, h("div", { class: "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-emerald-300" }, icon(ic)), h("div", {}, h("p", { class: "font-semibold" }, t), h("p", { class: "text-sm text-slate-300" }, d)));
@@ -665,9 +665,9 @@ async function pageFiles() {
     catch (er) { flash(form, "err", er.message); btn.disabled = false; btn.replaceChildren(icon("upload", "h-4 w-4"), "Anchor on blockchain"); }
   } }, dz.el, grid2(field("Title", title), field("Notes (optional)", desc)), btn);
   const rows = list.map((f) => { const link = `${location.origin}/#/verify/${f.code}`, cp = h("button", { class: "btn-soft", onclick: () => copy(link, cp) }, icon("copy", "h-3.5 w-3.5"), "Copy link");
-    return tr(h("div", {}, h("p", { class: "font-semibold text-slate-800" }, f.title), h("p", { class: "text-xs text-slate-400" }, `${f.fileName} · ${fmtSize(f.size)}`)), h("span", { class: "font-mono text-xs" }, f.code),
+    return tr(h("div", {}, h("p", { class: "font-semibold text-slate-800" }, f.title), h("p", { class: "text-xs text-slate-400" }, [f.stored ? `${f.fileName} · ${fmtSize(f.size)}` : "fingerprint only", f.source === "api" ? "sealed via API" : null].filter(Boolean).join(" · "))), h("span", { class: "font-mono text-xs" }, f.code),
       badge(f.chainStatus === "anchored" ? f.status : f.chainStatus), h("span", { class: "text-xs text-slate-400" }, fmtDay(f.createdAt)),
-      f.chainStatus === "anchored" ? h("div", { class: "flex flex-wrap justify-end gap-1.5" }, cp, h("a", { class: "btn-soft", href: `/api/files/${f.id}/download` }, icon("download", "h-3.5 w-3.5"), "Download"), f.status === "valid" ? h("button", { class: "btn-danger", onclick: () => revokeDialog({ id: f.id, code: f.code }, "files") }, "Revoke") : null) : ""); });
+      f.chainStatus === "anchored" ? h("div", { class: "flex flex-wrap justify-end gap-1.5" }, cp, f.stored ? h("a", { class: "btn-soft", href: `/api/files/${f.id}/download` }, icon("download", "h-3.5 w-3.5"), "Download") : null, f.status === "valid" ? h("button", { class: "btn-danger", onclick: () => revokeDialog({ id: f.id, code: f.code }, "files") }, "Revoke") : null) : ""); });
   return [alertBox("info", h("b", {}, "How it works: "), "upload any document (PDF, image, spreadsheet…). Its fingerprint is anchored on Ethereum under your institution's name. Any other institution, embassy or employer can then prove the file is genuine - and unmodified - by dropping the same file on the public Verify page, or by entering its code. Even one changed byte fails."),
     panel("Upload a document to the blockchain", null, form), panel(`Registered files (${list.length})`, null, tbl(["File", "Code", "Status", "Registered", ""], rows, "No files registered yet."))];
 }
@@ -704,6 +704,85 @@ async function pagePeople() {
       u.role === "issuer" ? h("button", { class: u.status === "active" ? "btn-danger" : "btn-ok", onclick: async () => { try { await api("PATCH", `/api/institution/staff/${u.id}/status`, { status: u.status === "active" ? "disabled" : "active" }); toast("ok", "Updated"); route(); } catch (e) { toast("err", e.message); } } }, u.status === "active" ? "Disable" : "Enable") : null))));
   return [alertBox("info", h("b", {}, "Sign in as "), "lets you see the app exactly as one of your issuers or students does, without their password. Sessions last 1 hour and are logged."), panel("Add issuer (registrar / teacher)", null, form), panel("People in your institution", null, t)];
 }
+// ───────────────────────────── company API (seal service) ─────────────────────────────
+const codeBlock = (text) => h("pre", { class: "overflow-x-auto rounded-xl bg-navy p-4 font-mono text-xs leading-relaxed text-slate-100" }, h("code", {}, text));
+
+async function pageApiKeys() {
+  const keys = await api("GET", "/api/institution/api-keys");
+  const name = inp({ required: true, maxlength: 80, placeholder: "e.g. Student information system (production)" });
+  const form = h("form", { class: "flex flex-wrap items-end gap-3 p-5", onsubmit: async (e) => {
+    e.preventDefault();
+    try {
+      const k = await api("POST", "/api/institution/api-keys", { name: name.value });
+      modal("API key created", (close) => { const b = h("button", { class: "btn-soft", onclick: () => copy(k.key, b) }, icon("copy", "h-3.5 w-3.5"), "Copy key");
+        return h("div", { class: "space-y-4" }, alertBox("warn", "Copy this key now and store it in your system's secret settings. It is shown only once; VeriDoc keeps only a fingerprint of it."),
+          h("div", { class: "break-all rounded-xl bg-slate-50 p-4 font-mono text-sm font-bold text-navy" }, k.key),
+          h("p", { class: "text-xs text-slate-500" }, "Send it with every request as:  Authorization: Bearer <key>"),
+          h("div", { class: "flex justify-end gap-2" }, b, h("button", { class: "btn", onclick: () => { close(); route(); } }, "Done"))); });
+    } catch (er) { flash(form, "err", er.message); }
+  } }, h("div", { class: "min-w-64 flex-1" }, field("Key name (which system will use it)", name)), h("button", { class: "btn" }, icon("plus", "h-4 w-4"), "Create API key"));
+  const rows = keys.map((k) => tr(h("div", {}, h("p", { class: "font-semibold text-slate-800" }, k.name), h("p", { class: "text-xs text-slate-400" }, `created by ${k.created_by || "-"} · ${fmtDay(k.created_at)}`)),
+    h("span", { class: "font-mono text-xs" }, k.prefix + "…"), String(k.documents), h("span", { class: "text-xs text-slate-400" }, k.last_used_at ? fmt(k.last_used_at) : "never"),
+    badge(k.revoked_at ? "revoked" : "active"),
+    k.revoked_at ? "" : h("button", { class: "btn-danger", onclick: async () => { if (!confirm(`Revoke "${k.name}"? Systems using it will stop working immediately.`)) return; try { await api("DELETE", `/api/institution/api-keys/${k.id}`); toast("ok", "Key revoked"); route(); } catch (e) { toast("err", e.message); } } }, "Revoke")));
+  const base = location.origin;
+  return [alertBox("info", h("b", {}, "VeriDoc as your seal: "), "connect the system that generates your report cards, certificates or letters. Each time it produces a document it calls the VeriDoc API; we anchor the document's fingerprint on Ethereum under your institution's name and return a seal (code, QR and link) to print on it. Anyone can then verify it. ", h("a", { class: "font-semibold underline", href: "#/developers" }, "Read the API guide →")),
+    panel("Create an API key", null, form),
+    panel(`Your API keys (${keys.length})`, null, tbl(["Name", "Key", "Documents sealed", "Last used", "Status", ""], rows, "No API keys yet.")),
+    panel("Quick test", null, pad(h("p", { class: "mb-3 text-sm text-slate-600" }, "Seal a document from any system (replace the key and file):"),
+      codeBlock(`curl -X POST ${base}/api/v1/documents \\\n  -H "Authorization: Bearer vdk_your_key" \\\n  -F "file=@report-card.pdf" \\\n  -F "title=Report card - Term 1 2026 - S001" \\\n  -F "docType=report_card"`)))];
+}
+
+function pageDevelopers() {
+  const base = location.origin;
+  const step = (n, t, d) => h("div", { class: "card p-5" }, h("div", { class: "mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white" }, String(n)), h("p", { class: "font-bold text-navy" }, t), h("p", { class: "mt-1 text-sm text-slate-600" }, d));
+  const sec = (title, ...kids) => h("section", { class: "card space-y-4 p-6" }, h("h2", { class: "text-lg font-bold text-navy" }, title), kids);
+  const p = (...k) => h("p", { class: "text-sm leading-relaxed text-slate-600" }, k);
+  const ep = (m, path, who, what) => tr(h("span", { class: `rounded-md px-2 py-0.5 font-mono text-xs font-bold ${m === "GET" ? "bg-emerald-50 text-emerald-700" : "bg-brand-50 text-brand-700"}` }, m), h("span", { class: "font-mono text-xs" }, path), who, what);
+  $root.replaceChildren(publicHeader(),
+    h("section", { class: "bg-gradient-to-b from-navy to-navy-800 pb-20 pt-12 text-white" }, h("div", { class: "mx-auto max-w-4xl px-4" },
+      h("span", { class: "inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-emerald-300" }, icon("link", "h-3.5 w-3.5"), "VeriDoc Seal API · v1"),
+      h("h1", { class: "mt-5 text-4xl font-extrabold tracking-tight" }, "Seal every document your system generates."),
+      h("p", { class: "mt-4 max-w-2xl text-slate-300" }, "Schools, universities, e-learning platforms and companies connect their own systems to VeriDoc. Every report card, certificate or letter they generate is fingerprinted and anchored on Ethereum, so nobody can forge or alter it - and any other company can verify it in seconds."))),
+    h("main", { class: "mx-auto -mt-10 max-w-4xl space-y-6 px-4 pb-16" },
+      h("div", { class: "grid gap-4 sm:grid-cols-3" },
+        step(1, "Your system generates a document", "A report card, certificate, transcript, letter… any file."),
+        step(2, "It calls VeriDoc", "We anchor the file's keccak256 fingerprint on Ethereum under your institution and return a seal: code, QR code and verify link."),
+        step(3, "Anyone verifies it", "An embassy, employer or school uploads the file or enters the code. One changed byte = NOT FOUND.")),
+      sec("1. Get an API key",
+        p("Your institution admin signs in to VeriDoc and opens ", h("b", {}, "API keys"), " → ", h("b", {}, "Create API key"), ". The key is shown once; store it in your system's secret settings. Send it with every request:"),
+        codeBlock("Authorization: Bearer vdk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+        p("Check that it works:"), codeBlock(`curl ${base}/api/v1/me -H "Authorization: Bearer $VERIDOC_KEY"`)),
+      sec("2. Seal a document",
+        p(h("b", {}, "Option A - send the file."), " VeriDoc hashes it, anchors the fingerprint and keeps a copy so verifiers can download the original."),
+        codeBlock(`curl -X POST ${base}/api/v1/documents \\\n  -H "Authorization: Bearer $VERIDOC_KEY" \\\n  -F "file=@report-card-S001.pdf" \\\n  -F "title=Report card - Term 1 2026 - Aline Uwase" \\\n  -F "docType=report_card" \\\n  -F "externalRef=SIS-2026-T1-S001"`),
+        p(h("b", {}, "Option B - send only the fingerprint"), " (the file never leaves your system). Compute keccak256 of the exact file bytes, e.g. in Node.js: ", h("code", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs" }, 'ethers.keccak256(fs.readFileSync("file.pdf"))')),
+        codeBlock(`curl -X POST ${base}/api/v1/documents \\\n  -H "Authorization: Bearer $VERIDOC_KEY" -H "Content-Type: application/json" \\\n  -d '{"fileHash":"0x5d9b…b7a3","title":"Certificate - BSc Software Eng.","docType":"certificate"}'`),
+        p("Response (201) - print the seal on the document (code + QR):"),
+        codeBlock(`{\n  "code": "VF-7K2QX-M4RTD",\n  "hash": "0x5d9b…b7a3",\n  "status": "VALID",\n  "title": "Report card - Term 1 2026 - Aline Uwase",\n  "docType": "report_card",\n  "institution": "Demo University of Kigali",\n  "chain": { "contract": "0x8DAE…3c52", "tx": "0xd458…ec9d", "explorer": "https://sepolia.etherscan.io/tx/0xd458…" },\n  "seal": {\n    "code": "VF-7K2QX-M4RTD",\n    "verifyUrl": "${base}/#/verify/VF-7K2QX-M4RTD",\n    "qrPng": "data:image/png;base64,…",\n    "text": "Sealed by VeriDoc on Ethereum. Verify at …"\n  }\n}`),
+        p("Fields: ", h("b", {}, "title"), " (required), ", h("b", {}, "docType"), " (certificate, report_card, transcript, diploma, other), ", h("b", {}, "externalRef"), " (your own id), ", h("b", {}, "description"), ", ", h("b", {}, "expiresAt"), " (ISO date). Each seal is one Ethereum transaction, so the call takes about 15-30 seconds on Sepolia.")),
+      sec("3. Seal a whole class at once",
+        p("Up to 100 fingerprints in ONE blockchain transaction - ideal for report cards:"),
+        codeBlock(`curl -X POST ${base}/api/v1/documents/batch \\\n  -H "Authorization: Bearer $VERIDOC_KEY" -H "Content-Type: application/json" \\\n  -d '{"docType":"report_card","documents":[\n        {"fileHash":"0xaaa…","title":"Report card T1 - S001","externalRef":"S001"},\n        {"fileHash":"0xbbb…","title":"Report card T1 - S002","externalRef":"S002"}]}'`)),
+      sec("4. Verify a document (any company - no key needed)",
+        codeBlock(`# by uploading the file\ncurl -X POST ${base}/api/v1/verify -F "file=@received-report-card.pdf"\n\n# by the code printed on it\ncurl -X POST ${base}/api/v1/verify -H "Content-Type: application/json" -d '{"code":"VF-7K2QX-M4RTD"}'\n\n# by fingerprint\ncurl -X POST ${base}/api/v1/verify -H "Content-Type: application/json" -d '{"hash":"0x5d9b…b7a3"}'`),
+        p("Response: ", h("code", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs" }, '{ "valid": true, "status": "VALID", "institution": "…", "title": "…", "issuedAt": "…" }'), ". Status is one of VALID, REVOKED, EXPIRED, SUPERSEDED, INSTITUTION_SUSPENDED, NOT_FOUND, TAMPERED. People can also verify on the ", h("a", { class: "font-semibold text-brand-600 hover:underline", href: "#/" }, "public Verify page"), ".")),
+      sec("5. Manage sealed documents",
+        tbl(["", "Endpoint", "Who", "What"], [
+          ep("GET", "/api/v1/me", "key", "Which institution the key seals for"),
+          ep("POST", "/api/v1/documents", "key", "Seal one document (file or fileHash)"),
+          ep("POST", "/api/v1/documents/batch", "key", "Seal up to 100 fingerprints in one transaction"),
+          ep("GET", "/api/v1/documents", "key", "List your sealed documents (?limit=)"),
+          ep("GET", "/api/v1/documents/:code", "key", "One document with its seal and QR"),
+          ep("POST", "/api/v1/documents/:code/revoke", "key", "Revoke with a public reason {\"reason\": \"…\"}"),
+          ep("POST", "/api/v1/verify", "anyone", "Verify by file, code or fingerprint"),
+        ]),
+        p("Errors return ", h("code", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs" }, '{ "error": "message" }'), " with HTTP 400 (bad input), 401 (missing/invalid key), 404, 409 (already sealed), 429 (rate limit: 120 requests/minute per key) or 502 (blockchain unavailable - retry).")),
+      sec("Trust model",
+        p("Only the document's fingerprint goes on-chain - never the content or personal data. The fingerprint is recorded by the VeriDoc smart contract on Ethereum (Sepolia testnet), together with the issuing institution and time. Because the chain cannot be edited, a sealed document cannot be quietly changed, and a forged one has no record. Revocations are public and permanent."))));
+  window.scrollTo(0, 0);
+}
+
 // ───────────────────────────── my account ─────────────────────────────
 function pageAccount() {
   const row = (k, v) => v ? h("div", { class: "grid grid-cols-3 gap-3 py-2.5 text-sm" }, h("dt", { class: "text-slate-400" }, k), h("dd", { class: "col-span-2 break-all text-slate-800" }, v)) : null;
@@ -738,7 +817,7 @@ async function pageVerify(arg) { return me.role === "verifier" ? [await dashVeri
 // ───────────────────────────── router ─────────────────────────────
 const PAGES = {
   dashboard: () => ({ super_admin: dashAdmin, institution_admin: dashInstitution, issuer: dashInstitution, student: dashStudent, verifier: dashVerifier })[me.role](),
-  institutions: pageInstitutions, users: pageUsers, audit: pageAudit, documents: pageDocuments, issue: pageIssue, batch: pageBatch, files: pageFiles, students: pageStudents, people: pagePeople, verify: pageVerify, account: pageAccount,
+  institutions: pageInstitutions, users: pageUsers, audit: pageAudit, documents: pageDocuments, issue: pageIssue, batch: pageBatch, files: pageFiles, students: pageStudents, people: pagePeople, verify: pageVerify, account: pageAccount, apikeys: pageApiKeys,
 };
 async function appPage(key, arg) {
   const nav = [...(NAV[me.role] || NAV.verifier), ACCOUNT_NAV];
@@ -752,6 +831,7 @@ async function route() {
   if (me?.mustChangePassword && !imp) return pageChangePw();
   if (page === "login") return me ? ((location.hash = "#/app/dashboard"), undefined) : pageLogin();
   if (page === "register") return pageRegister();
+  if (page === "developers") return pageDevelopers();
   if (page === "app" || page === "dashboard") { if (!me) { location.hash = "#/login"; return; } return appPage(arg || "dashboard", arg2); }
   if (page === "verify" && me) return appPage("verify", arg && decodeURIComponent(arg));
   pageVerifyPublic(arg && decodeURIComponent(arg));

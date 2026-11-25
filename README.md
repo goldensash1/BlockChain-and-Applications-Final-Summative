@@ -23,6 +23,19 @@ Checking an academic document today usually means phoning or emailing the school
 3. **Anchor:** the fingerprint is written to the `VeriDoc` smart contract along with the institution, type, issue date and expiry.
 4. **Verify:** anyone scans the QR code or enters the code. The result is **VALID**, **REVOKED**, **EXPIRED**, **SUPERSEDED**, **INSTITUTION SUSPENDED**, **TAMPERED** or **NOT FOUND**.
 
+## Seal API for companies
+VeriDoc also works as a **seal service** for documents that other systems generate. A school's student information system, an e-learning platform or a company's HR system gets an **API key** from its institution admin (**API keys** page). Each time that system produces a report card, certificate or letter, it calls VeriDoc. VeriDoc anchors the file's fingerprint on Ethereum under that institution and returns a **seal**: a verification code, a QR code and a verify link to print on the document. Any other company can then verify the document, with no account needed.
+
+| Endpoint | Who | Purpose |
+|---|---|---|
+| `POST /api/v1/documents` | API key | Seal one document: send the file (multipart) or only its `fileHash` (keccak256) |
+| `POST /api/v1/documents/batch` | API key | Seal up to 100 fingerprints in one transaction (a whole class) |
+| `GET /api/v1/documents`, `GET /api/v1/documents/:code` | API key | List sealed documents, or get one with its seal and QR |
+| `POST /api/v1/documents/:code/revoke` | API key | Revoke with a public reason |
+| `POST /api/v1/verify` | Anyone | Verify by file, code or fingerprint |
+
+Full guide with examples: https://veridoc.msilabtester.site/#/developers
+
 ## Smart contract
 [`veridoc/contracts/VeriDoc.sol`](veridoc/contracts/VeriDoc.sol) is written in Solidity 0.8.24 and uses OpenZeppelin's `Ownable2Step` and `Pausable`.
 
@@ -49,7 +62,7 @@ Checking an academic document today usually means phoning or emailing the school
 | Suite | Command | Result |
 |---|---|---|
 | Smart-contract tests | `npm test` | 23 / 23 passing |
-| End-to-end API tests | `npm run e2e` | 90 / 90 passing |
+| End-to-end API tests | `npm run e2e` | 112 / 112 passing |
 
 The test cases, with their expected and actual results, are in [`veridoc/docs/TEST_CASES.md`](veridoc/docs/TEST_CASES.md). The raw outputs are the `veridoc/docs/results-*.txt` files.
 

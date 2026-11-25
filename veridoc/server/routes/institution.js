@@ -8,6 +8,29 @@ const { monthlySeries, statusBreakdown } = require("../stats");
 
 const emailOk = (e) => typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+// ---- API keys for the company "seal" API (institution_admin only) ----
+const seal = require("../seal");
+router.get("/api-keys", requireRole("institution_admin"), (req, res) =>
+  res.json(db.prepare(`SELECT k.id, k.name, k.prefix, k.created_at, k.last_used_at, k.revoked_at, u.name AS created_by,
+      (SELECT COUNT(*) FROM files f WHERE f.api_key_id = k.id AND f.chain_status='anchored') AS documents
+    FROM api_keys k LEFT JOIN users u ON u.id = k.created_by WHERE k.institution_id = ? ORDER BY k.id DESC`).all(req.user.institution_id)));
+
+router.post("/api-keys", requireRole("institution_admin"), (req, res) => {
+  if (req.impersonator) throw new HttpError(403, "API keys cannot be created while acting as another user");
+  const k = seal.createKey(req.user.institution_id, req.body?.name, req.user.id);
+  audit(req.user.id, "api_key_created", `${k.name} (${k.prefix}…)`);
+  res.status(201).json(k); // the full key is returned ONCE
+});
+
+router.delete("/api-keys/:id", requireRole("institution_admin"), (req, res) => {
+  const k = db.prepare("SELECT * FROM api_keys WHERE id=? AND institution_id=?").get(req.params.id, req.user.institution_id);
+  if (!k) throw new HttpError(404, "Key not found");
+  if (k.revoked_at) throw new HttpError(409, "Key is already revoked");
+  db.prepare("UPDATE api_keys SET revoked_at = datetime('now') WHERE id=?").run(k.id);
+  audit(req.user.id, "api_key_revoked", `${k.name} (${k.prefix}…)`);
+  res.json({ ok: true });
+});
+
 // ---- Staff (institution_admin only) ----
 router.get("/staff", requireRole("institution_admin"), (req, res) =>
   res.json(db.prepare("SELECT id,email,name,role,status,created_at FROM users WHERE institution_id=? AND role IN ('issuer','institution_admin')").all(req.user.institution_id)));
