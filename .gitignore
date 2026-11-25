@@ -2,7 +2,8 @@
 .env
 **/.env
 veridoc/data/
-veridoc/data.backup-*/
+# database backups, e.g. data.local-chain-backup/
+veridoc/data.*/
 
 # Dependencies and build output
 node_modules/
