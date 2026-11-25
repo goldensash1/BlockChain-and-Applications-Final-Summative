@@ -1,0 +1,12 @@
+DEMO UNIVERSITY OF KIGALI
+Institutional Accreditation Letter 2026
+
+This letter confirms that Demo University of Kigali is accredited for the
+2026 academic year. It is a sample file for the VeriDoc demonstration.
+
+How to use it:
+1. Open https://veridoc.msilabtester.site and choose "Upload a file".
+2. Upload this file unchanged: VeriDoc reports it as VALID, registered by
+   Demo University of Kigali, with its Sepolia transaction.
+3. Change one word, save, and upload again: VeriDoc reports NOT FOUND,
+   because any edit changes the file's fingerprint.

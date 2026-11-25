@@ -16,7 +16,8 @@
     "demo:sepolia": "hardhat run scripts/demo.js --network sepolia",
     "build:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./public/tailwind.css --watch",
-    "update:server": "bash scripts/update-server.sh"
+    "update:server": "bash scripts/update-server.sh",
+    "demo-data": "node scripts/demo-data.js"
   },
   "keywords": [],
   "author": "",
