@@ -20,3 +20,6 @@ veridoc/docs/BUILD_PROMPT.md
 # Local tooling and OS files
 .claude/
 .DS_Store
+
+# Submission copy (contains reviewer passwords) - never commit
+submission/
