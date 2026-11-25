@@ -7,7 +7,7 @@ const STATUS = ["NOT_FOUND", "VALID", "REVOKED", "EXPIRED", "SUPERSEDED", "INSTI
 const DOC_TYPES = ["certificate", "report_card", "transcript", "diploma"];
 
 let provider, ownerC, relayerC, readC;
-let ownerAddr, relayerAddr;
+let ownerAddr, relayerAddr, singleSigner = false;
 
 // Serialise transactions per signer so nonces never collide.
 const queues = new Map();
@@ -21,13 +21,16 @@ function enqueue(key, fn) {
 function init() {
   if (!cfg.chain.address) throw new Error("CONTRACT_ADDRESS not set and no deployments/<network>.json found. Deploy the contract first.");
   provider = new ethers.JsonRpcProvider(cfg.chain.rpc);
+  ownerAddr = new ethers.Wallet(cfg.chain.ownerKey).address;
+  relayerAddr = new ethers.Wallet(cfg.chain.relayerKey).address;
+  // One wallet may play both roles (e.g. a single funded testnet key). It then gets ONE
+  // signer and ONE queue, otherwise two NonceManagers would hand out the same nonce.
+  singleSigner = ownerAddr === relayerAddr;
   const owner = new ethers.NonceManager(new ethers.Wallet(cfg.chain.ownerKey, provider));
-  const relayer = new ethers.NonceManager(new ethers.Wallet(cfg.chain.relayerKey, provider));
+  const relayer = singleSigner ? owner : new ethers.NonceManager(new ethers.Wallet(cfg.chain.relayerKey, provider));
   readC = new ethers.Contract(cfg.chain.address, artifact.abi, provider);
   ownerC = new ethers.Contract(cfg.chain.address, artifact.abi, owner);
   relayerC = new ethers.Contract(cfg.chain.address, artifact.abi, relayer);
-  ownerAddr = new ethers.Wallet(cfg.chain.ownerKey).address;
-  relayerAddr = new ethers.Wallet(cfg.chain.relayerKey).address;
 }
 
 const instId = (code) => ethers.id(code);
@@ -35,7 +38,7 @@ const typeIdx = (t) => { const i = DOC_TYPES.indexOf(t); if (i < 0) throw new Er
 const toUnix = (iso) => (iso ? Math.floor(new Date(iso).getTime() / 1000) : 0);
 
 async function send(key, fn) {
-  return enqueue(key, async () => {
+  return enqueue(singleSigner ? "owner" : key, async () => {
     const tx = await fn();
     const rc = await tx.wait();
     return rc.hash;
