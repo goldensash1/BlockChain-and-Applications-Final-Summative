@@ -90,7 +90,7 @@ The full setup steps, including how to deploy to the **Sepolia testnet**, are in
 ## Repository layout
 ```
 VERIDOC_Project_Report.docx   Full project report
-VERIDOC_Presentation.pptx     Presentation slides
+VERIDOC_Presentation.pdf      Presentation slides (22 slides)
 CONCEPT.md                    Original concept note
 veridoc/
   contracts/VeriDoc.sol       Solidity smart contract

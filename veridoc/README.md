@@ -27,7 +27,7 @@ scripts/                    deploy.js, seed.js, e2e.js
 server/                     Express API (auth, roles, documents, verification, chain wrapper)
 public/                     Tailwind-styled single-page app (app.js, tailwind.css) + printable styles
 src/input.css               Tailwind source; `npm run build:css` compiles it
-docs/                       VERIDOC_Project_Report.docx, VERIDOC_Presentation.pptx, brand/ (logo), CONCEPT, DEPLOYMENT_GUIDE, TEST_CASES
+docs/                       VERIDOC_Project_Report.docx, VERIDOC_Presentation.pdf, brand/ (logo), CONCEPT, DEPLOYMENT_GUIDE, TEST_CASES
 ```
 See `docs/DEPLOYMENT_GUIDE.md` for Sepolia deployment. Never commit `.env` or real private keys.
 
