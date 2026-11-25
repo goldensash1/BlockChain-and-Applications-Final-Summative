@@ -1,6 +1,6 @@
 # Test Cases and Results
 
-Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results-api-tests.txt`.
+Sections A and B run on a local Hardhat chain (raw output: `results-contract-tests.txt`, `results-api-tests.txt`). Section C is the same contract tested live on the Ethereum Sepolia testnet (raw output: `results-demo-sepolia.txt`).
 
 ## A. Smart contract tests (`npm test`) - 23 / 23 passed
 
@@ -146,3 +146,18 @@ Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results
 | E110 | revoking a code that is not yours -> 404 | PASS |
 | E111 | X-API-Key header also accepted | PASS |
 | E112 | revoked key stops working -> 401 | PASS |
+
+## C. Live test on the Ethereum Sepolia testnet (`npm run demo:sepolia`) - 8 / 8 passed
+
+Contract `0x8DAEB0d204A30F4e712e701033Df992AdC333c52`, deployed in tx [`0xfc67eb77…`](https://sepolia.etherscan.io/tx/0xfc67eb7762f18e50c88374f159dbac107ec51d97a9e242894a6dc52fc13e966a) on 25 November 2026.
+
+| ID | Test case | Expected | Actual | Result | Evidence |
+|---|---|---|---|---|---|
+| S1 | Owner registers an institution (`registerInstitution`) | Transaction succeeds | Success, block 12210229 | PASS | [0xc49bccc3…](https://sepolia.etherscan.io/tx/0xc49bccc3d4257bc940fb56247ebab7188972141f400034a42c3df9849a28ed19) |
+| S2 | Institution admin authorises an issuer (`authorizeIssuer`) | Transaction succeeds | Success, block 12210231 | PASS | [0x761bfa76…](https://sepolia.etherscan.io/tx/0x761bfa76620a56c7de444b642cfc5ed223db8a0a207a47724c834d8c26983c14) |
+| S3 | `verify` a fingerprint before it is issued | NotFound | NotFound | PASS | read call (free) |
+| S4 | Issuer anchors a certificate (`issue`) | Transaction succeeds, `DocumentIssued` event | Success, block 12210233, event in Logs | PASS | [0xd4588428…](https://sepolia.etherscan.io/tx/0xd45884281a947ba5af958431f085fcec8063c1e463e0ff847187250f1951ec9d) |
+| S5 | `verify` the issued certificate | Valid, institution "Demo University of Kigali" | Valid, institution "Demo University of Kigali" | PASS | read call (free) |
+| S6 | `verify` a forged (edited) document | NotFound | NotFound | PASS | read call (free) |
+| S7 | Issuer revokes the certificate (`revoke`) | Transaction succeeds | Success, block 12210235 | PASS | [0xdf6ad40c…](https://sepolia.etherscan.io/tx/0xdf6ad40c8067edeac7a5fa8d9a0ceebbb5af0e95851b4b50c3695ed87f4f7e0f) |
+| S8 | `verify` after revocation | Revoked, with the reason | Revoked ("Issued in error - demo") | PASS | read call (free) |
