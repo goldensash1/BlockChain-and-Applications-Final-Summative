@@ -30,7 +30,7 @@ Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results
 | TC22 | only owner can pause / suspend | PASS |
 | TC23 | two-step ownership transfer | PASS |
 
-## B. End-to-end API tests (`npm run e2e`) - 83 / 83 passed
+## B. End-to-end API tests (`npm run e2e`) - 90 / 90 passed
 
 | ID | Test case (expected behaviour) | Result |
 |---|---|---|
@@ -117,3 +117,10 @@ Run on a local Hardhat chain. Raw output: `results-contract-tests.txt`, `results
 | E81 | super admin adds a user inside an institution | PASS |
 | E82 | institution admin edits their own issuer | PASS |
 | E83 | institution admin cannot use the admin edit endpoint (403) | PASS |
+| E84 | change password: wrong current password -> 400 | PASS |
+| E85 | change password: weak new password -> 400 | PASS |
+| E86 | change password: same as current -> 400 | PASS |
+| E87 | change password: not signed in -> 401 | PASS |
+| E88 | signed-in user changes own password | PASS |
+| E89 | old password stops working, new one works | PASS |
+| E90 | password changed back (keeps the demo login stable) | PASS |

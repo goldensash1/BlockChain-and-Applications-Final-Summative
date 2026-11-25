@@ -196,6 +196,19 @@ function t(name, cond, extra = "") { cond ? pass++ : fail++; console.log(`${cond
   t("E82 institution admin edits their own issuer", (await call("PATCH", `/api/institution/staff/${iss.id}`, { name: "Ivan I." }, reg)).status === 200);
   t("E83 institution admin cannot use the admin edit endpoint (403)", (await call("PATCH", `/api/admin/users/${iss.id}`, { name: "x" }, reg)).status === 403);
 
+  // --- MY ACCOUNT: CHANGE OWN PASSWORD ---
+  const OLD = "Registrar#2026pw", NEW = "Registrar#2026new";
+  const cp = (body, ck = reg) => call("POST", "/api/auth/change-password", body, ck);
+  t("E84 change password: wrong current password -> 400", (await cp({ currentPassword: "not-it-123", newPassword: NEW })).status === 400);
+  t("E85 change password: weak new password -> 400", (await cp({ currentPassword: OLD, newPassword: "short" })).status === 400);
+  t("E86 change password: same as current -> 400", (await cp({ currentPassword: OLD, newPassword: OLD })).status === 400);
+  t("E87 change password: not signed in -> 401", (await cp({ currentPassword: OLD, newPassword: NEW }, null)).status === 401);
+  t("E88 signed-in user changes own password", (await cp({ currentPassword: OLD, newPassword: NEW })).status === 200);
+  const oldLogin = await call("POST", "/api/auth/login", { email: "registrar@demo.edu", password: OLD });
+  const newLogin = await call("POST", "/api/auth/login", { email: "registrar@demo.edu", password: NEW });
+  t("E89 old password stops working, new one works", oldLogin.status === 401 && newLogin.status === 200);
+  t("E90 password changed back (keeps the demo login stable)", (await cp({ currentPassword: NEW, newPassword: OLD })).status === 200);
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

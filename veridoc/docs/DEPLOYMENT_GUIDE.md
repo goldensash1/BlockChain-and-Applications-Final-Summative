@@ -27,7 +27,7 @@ npm start                     # http://localhost:3000
 
 # Terminal 3 - create demo institution, students, certificate and report cards
 npm run seed
-npm run e2e                   # 83 API tests
+npm run e2e                   # 90 API tests
 ```
 Sign in at http://localhost:3000/#/login with the demo accounts printed by `npm run seed`.
 (Set `LOGIN_RATE_LIMIT=1000` when starting the server if you run the tests repeatedly.)
@@ -75,7 +75,7 @@ npx hardhat console --network sepolia
 | 6 | `DocumentIssued` event on Etherscan | browser |
 | 7 | Verify page: VALID / REVOKED / NOT FOUND / TAMPERED | web app |
 | 8 | Printable certificate with QR | web app |
-| 9 | `npm run e2e` - 39 passed | terminal |
+| 9 | `npm run e2e` - 90 passed | terminal |
 
 ## 6. Production hardening checklist
 - Strong `JWT_SECRET`, `COOKIE_SECURE=true`, serve behind HTTPS (Nginx/Caddy)

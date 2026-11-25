@@ -225,7 +225,10 @@ const SUBTITLE = {
   dashboard: "Overview of activity and status", institutions: "Register and manage institutions on the blockchain", users: "Accounts, approvals and access", audit: "Every sensitive action, recorded",
   documents: "Everything your institution has issued", issue: "Anchor a certificate on Ethereum", batch: "Issue a whole class in one transaction", students: "Your students and bulk import",
   people: "Issuers and student logins you can manage", files: "Register any file on Ethereum so other institutions can validate it", verify: "Check any document in seconds",
+  account: "Your profile and password",
 };
+/** Available to every signed-in role, shown under the user card in the sidebar. */
+const ACCOUNT_NAV = ["account", "My account", "user"];
 const brandLogo = (cls = "h-9 w-9") => h("img", { src: "/logo.svg", alt: "", class: cls });
 
 function banner() {
@@ -253,7 +256,9 @@ function renderShell(active, title) {
     h("div", { class: "mt-4 rounded-2xl bg-white/10 p-3" },
       h("div", { class: "flex items-center gap-3" }, h("div", { class: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold" }, initials(me.name)),
         h("div", { class: "min-w-0" }, h("p", { class: "truncate text-sm font-semibold" }, me.name), h("p", { class: "truncate text-xs text-slate-300" }, cap(me.role)))),
-      h("button", { class: "mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20", onclick: signOut }, icon("logout", "h-4 w-4"), "Sign out")));
+      h("div", { class: "mt-3 grid grid-cols-2 gap-2" },
+        h("a", { href: "#/app/account", class: `flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${active === "account" ? "bg-white text-navy" : "bg-white/10 text-white hover:bg-white/20"}`, onclick: () => side.classList.remove("!flex") }, icon("user", "h-4 w-4"), "My account"),
+        h("button", { class: "flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20", onclick: signOut }, icon("logout", "h-4 w-4"), "Sign out"))));
   const verifyInput = h("input", { class: "w-full bg-transparent text-sm text-white placeholder-slate-400 outline-none", placeholder: "Quick verify: paste a code e.g. VD-ABCDE-12345" });
   verifyInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && verifyInput.value.trim()) location.hash = "#/verify/" + encodeURIComponent(verifyInput.value.trim()); });
   const top = h("header", { class: "mb-6 flex flex-wrap items-center gap-3" },
@@ -699,15 +704,44 @@ async function pagePeople() {
       u.role === "issuer" ? h("button", { class: u.status === "active" ? "btn-danger" : "btn-ok", onclick: async () => { try { await api("PATCH", `/api/institution/staff/${u.id}/status`, { status: u.status === "active" ? "disabled" : "active" }); toast("ok", "Updated"); route(); } catch (e) { toast("err", e.message); } } }, u.status === "active" ? "Disable" : "Enable") : null))));
   return [alertBox("info", h("b", {}, "Sign in as "), "lets you see the app exactly as one of your issuers or students does, without their password. Sessions last 1 hour and are logged."), panel("Add issuer (registrar / teacher)", null, form), panel("People in your institution", null, t)];
 }
+// ───────────────────────────── my account ─────────────────────────────
+function pageAccount() {
+  const row = (k, v) => v ? h("div", { class: "grid grid-cols-3 gap-3 py-2.5 text-sm" }, h("dt", { class: "text-slate-400" }, k), h("dd", { class: "col-span-2 break-all text-slate-800" }, v)) : null;
+  const profile = panel("Profile", rolePill(me.role), pad(h("dl", { class: "divide-y divide-slate-100" },
+    row("Name", me.name), row("Email", me.email), row("Role", cap(me.role)), row("Organization", me.organization))));
+
+  if (imp) {
+    return [profile, panel("Change password", null, pad(alertBox("warn", `You are viewing as ${me.name}. Return to your own account to change a password; nobody can change another person's password from here.`)))];
+  }
+
+  const cur = inp({ type: "password", required: true, autocomplete: "current-password" });
+  const nw = inp({ type: "password", required: true, minlength: 10, autocomplete: "new-password" });
+  const again = inp({ type: "password", required: true, minlength: 10, autocomplete: "new-password" });
+  const btn = h("button", { class: "btn" }, icon("key", "h-4 w-4"), "Change password");
+  const f = h("form", { class: "max-w-md space-y-4", onsubmit: async (e) => {
+    e.preventDefault();
+    if (nw.value !== again.value) return flash(f, "err", "The two new passwords do not match.");
+    if (nw.value === cur.value) return flash(f, "err", "The new password must be different from the current one.");
+    btn.disabled = true;
+    try {
+      await api("POST", "/api/auth/change-password", { currentPassword: cur.value, newPassword: nw.value });
+      f.reset(); flash(f, "ok", "Password changed. Use the new password next time you sign in.");
+      toast("ok", "Password changed");
+    } catch (er) { flash(f, "err", er.message); }
+    btn.disabled = false;
+  } }, field("Current password", cur), field("New password", nw, "At least 10 characters, with letters and numbers"), field("Confirm new password", again), btn);
+  return [profile, panel("Change password", null, pad(f))];
+}
+
 async function pageVerify(arg) { return me.role === "verifier" ? [await dashVerifier()].flat() : [panel("Verify a document", null, pad(verifyBox(arg)))]; }
 
 // ───────────────────────────── router ─────────────────────────────
 const PAGES = {
   dashboard: () => ({ super_admin: dashAdmin, institution_admin: dashInstitution, issuer: dashInstitution, student: dashStudent, verifier: dashVerifier })[me.role](),
-  institutions: pageInstitutions, users: pageUsers, audit: pageAudit, documents: pageDocuments, issue: pageIssue, batch: pageBatch, files: pageFiles, students: pageStudents, people: pagePeople, verify: pageVerify,
+  institutions: pageInstitutions, users: pageUsers, audit: pageAudit, documents: pageDocuments, issue: pageIssue, batch: pageBatch, files: pageFiles, students: pageStudents, people: pagePeople, verify: pageVerify, account: pageAccount,
 };
 async function appPage(key, arg) {
-  const nav = NAV[me.role] || NAV.verifier;
+  const nav = [...(NAV[me.role] || NAV.verifier), ACCOUNT_NAV];
   if (!nav.find((n) => n[0] === key)) key = "dashboard";
   const main = renderShell(key, nav.find((n) => n[0] === key)[1]);
   try { main.replaceChildren(...[await PAGES[key](arg)].flat()); }

@@ -71,6 +71,7 @@ router.post("/change-password", requireAuth, wrap(async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!(await bcrypt.compare(String(currentPassword || ""), req.user.password_hash))) throw new HttpError(400, "Current password is incorrect");
   if (!strong(newPassword)) throw new HttpError(400, "New password must be 10+ characters with letters and numbers");
+  if (newPassword === currentPassword) throw new HttpError(400, "New password must be different from the current one");
   db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").run(await bcrypt.hash(newPassword, 10), req.user.id);
   audit(req.user.id, "password_changed");
   res.json({ ok: true });

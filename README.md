@@ -40,7 +40,7 @@ Checking an academic document today usually means phoning or emailing the school
 | Suite | Command | Result |
 |---|---|---|
 | Smart-contract tests | `npm test` | 23 / 23 passing |
-| End-to-end API tests | `npm run e2e` | 83 / 83 passing |
+| End-to-end API tests | `npm run e2e` | 90 / 90 passing |
 
 The test cases, with their expected and actual results, are in [`veridoc/docs/TEST_CASES.md`](veridoc/docs/TEST_CASES.md). The raw outputs are the `veridoc/docs/results-*.txt` files.
 
